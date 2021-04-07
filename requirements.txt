@@ -1,0 +1,12 @@
+click
+dataclasses
+fastapi
+h11
+pydantic
+pymongo
+starlette
+typing-extensions
+uvicorn
+gunicorn
+uvloop
+httptools
