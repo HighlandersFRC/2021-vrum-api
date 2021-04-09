@@ -1,15 +1,34 @@
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, status
 import pymongo
 from datetime import datetime
 import uuid
+import hashlib
+
+key_hash_value = "5e5a634109a9f3e5f759149a4056f262553410fff1aad0f82fb1328a74997d14"
+
 uri = "mongodb://4499-innovation-project:5DlQKCwxEYQvdtBAITOC7w0YPfgtvFbRP96sT6TZNW8Ynyb57SIiMSQ7dzVznJqN7t11CcFPlFKqUIOAh0G4Tw==@4499-innovation-project.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&replicaSet=globaldb&maxIdleTimeMS=120000&appName=@4499-innovation-project@"
 client = pymongo.MongoClient(uri)
-
-
 app = FastAPI()
 
-
+def authenticate_key(key):
+    try:
+        key_hash = str(hashlib.sha256(key.encode()).hexdigest())
+        return key_hash == key_hash_value
+    except:
+        return False
+def get_correct_response(auth_key):
+    if not auth_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No authentication key was specified. If you have a key, please add auth_key: **authentication_key** to your " +
+            f"request header",
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication key",
+        )
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -21,7 +40,12 @@ def read_item(item_id: int, q: Optional[str] = None):
 
 
 @app.post("/user_location/")
-def write_item(longitude: float, latitude: float, user_id: int):
+def write_item(request: Request, longitude: float, latitude: float, user_id: int):
+    auth_key = request.headers.get("apikey")
+    valid = authenticate_key(auth_key)
+    if not valid:
+        get_correct_response(auth_key)
+        
     mydb = client['test-database']
     mycol = mydb['Container1']
     event = {
