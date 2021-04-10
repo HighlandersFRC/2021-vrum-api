@@ -85,10 +85,10 @@ def write_item(request: Request, longitude: float, latitude: float, user_id: int
 
 @app.post("/psm/")
 def write_psm(request: Request, psm: PSM):
-    # auth_key = request.headers.get("apikey")
-    # valid = authenticate_key(auth_key)
-    # if not valid:
-    #     get_correct_response(auth_key)
+    auth_key = request.headers.get("apikey")
+    valid = authenticate_key(auth_key)
+    if not valid:
+        get_correct_response(auth_key)
 
     mydb = client['test-database']
     mycol = mydb['Container1']
