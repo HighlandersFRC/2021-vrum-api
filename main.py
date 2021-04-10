@@ -2,8 +2,10 @@ from typing import Optional
 from fastapi import FastAPI, Request, HTTPException, status
 import pymongo
 from datetime import datetime
+from pydantic import BaseModel
 import uuid
 import hashlib
+import json
 
 key_hash_value = "5e5a634109a9f3e5f759149a4056f262553410fff1aad0f82fb1328a74997d14"
 
@@ -11,12 +13,32 @@ uri = "mongodb://4499-innovation-project:5DlQKCwxEYQvdtBAITOC7w0YPfgtvFbRP96sT6T
 client = pymongo.MongoClient(uri)
 app = FastAPI()
 
+
+class Position(BaseModel):
+    lat: float
+    lon: float
+    elevation: float
+
+
+class PSM(BaseModel):
+    basicType: str
+    timestamp: int
+    msgCnt: int
+    id: str
+    position: Position
+    accuracy: float
+    speed: float
+    heading: float
+
+
 def authenticate_key(key):
     try:
         key_hash = str(hashlib.sha256(key.encode()).hexdigest())
         return key_hash == key_hash_value
     except:
         return False
+
+
 def get_correct_response(auth_key):
     if not auth_key:
         raise HTTPException(
@@ -29,6 +51,8 @@ def get_correct_response(auth_key):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication key",
         )
+
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
@@ -45,7 +69,7 @@ def write_item(request: Request, longitude: float, latitude: float, user_id: int
     valid = authenticate_key(auth_key)
     if not valid:
         get_correct_response(auth_key)
-        
+
     mydb = client['test-database']
     mycol = mydb['Container1']
     event = {
@@ -57,3 +81,19 @@ def write_item(request: Request, longitude: float, latitude: float, user_id: int
     }
     mycol.insert_one(event)
     return 200
+
+
+@app.post("/psm/")
+def write_psm(request: Request, psm: PSM):
+    # auth_key = request.headers.get("apikey")
+    # valid = authenticate_key(auth_key)
+    # if not valid:
+    #     get_correct_response(auth_key)
+
+    mydb = client['test-database']
+    mycol = mydb['Container1']
+    mycol.insert_one(psm.dict())
+    return 200
+
+
+# {"basicType": "aPEDESTRIAN", "secMark": 0, "timestamp": 0, "msgCnt": 0, "id": 1, "position": {"lat": 37.4219983, "lon": -122.084, "elevation": 5.0}, "accuracy": 5.0, "speed": 0.0, "heading": 90.0}
