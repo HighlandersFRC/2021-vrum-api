@@ -3,9 +3,11 @@ from fastapi import FastAPI, Request, HTTPException, status
 import pymongo
 from datetime import datetime
 from pydantic import BaseModel
+from typing import List
 import uuid
 import hashlib
 import json
+import math
 
 key_hash_value = "5e5a634109a9f3e5f759149a4056f262553410fff1aad0f82fb1328a74997d14"
 
@@ -13,6 +15,10 @@ uri = "mongodb://4499-innovation-project:5DlQKCwxEYQvdtBAITOC7w0YPfgtvFbRP96sT6T
 client = pymongo.MongoClient(uri)
 app = FastAPI()
 
+BOUNDING_HEIGHT = 1.0 #km
+BOUNDING_WIDTH = 1.0 #km
+
+BOUNDING_LAT_OFFSET = (BOUNDING_HEIGHT/2.0)/111132.954 
 
 class Position(BaseModel):
     lat: float
@@ -31,6 +37,10 @@ class PSM(BaseModel):
     heading: float
 
 
+class PSM_Pagination(BaseModel):
+    psms: List[PSM]
+
+#"https://vrum-rest.api.azurewebsites.net"
 def authenticate_key(key):
     try:
         key_hash = str(hashlib.sha256(key.encode()).hexdigest())
@@ -96,4 +106,39 @@ def write_psm(request: Request, psm: PSM):
     return 200
 
 
-# {"basicType": "aPEDESTRIAN", "secMark": 0, "timestamp": 0, "msgCnt": 0, "id": 1, "position": {"lat": 37.4219983, "lon": -122.084, "elevation": 5.0}, "accuracy": 5.0, "speed": 0.0, "heading": 90.0}
+@app.get("/psm/")
+def get_psm(longitude: float, latitude:float, datetime:int):
+    auth_key = request.headers.get("apikey")
+    valid = authenticate_key(auth_key)
+    if not valid:
+        get_correct_response(auth_key)
+
+    mydb = client['test-database']
+    mycol = mydb['Container1']
+
+    start_millis = datetime - 30000
+    end_millis = datetime + 30000
+
+    north_bound = latitude + BOUNDING_LAT_OFFSET
+    south_bound = latitude - BOUNDING_LAT_OFFSET
+
+    long_offset = ((BOUNDING_WIDTH/2.0) / (40075.0*math.cos(math.radians(latitude)/360.0)))
+    east_bound = longitude + long_offset
+    west_bound = longitude - long_offset
+
+    query = {"$and":[
+        {"timestamp": {"$gte": start_millis}},
+        {"timestamp": {"$lte": end_millis}},
+        {"position.lat": {"$gte": south_bound}},
+        {"position.lat": {"$lte": north_bound}},
+        {"position.lon": {"$gte": west_bound}},
+        {"position.lon": {"$lte": east_bound}}
+    ]}
+
+    psms = mycol.find(query)
+    psm_list = []
+    for x in psms:
+        psm_list.append(x)
+
+    psm_response = PSM_Pagination(psms = psm_list)
+    return psm_response
