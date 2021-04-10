@@ -107,7 +107,7 @@ def write_psm(request: Request, psm: PSM):
 
 
 @app.get("/psm/")
-def get_psm(longitude: float, latitude:float, datetime:int):
+def get_psm(request:Request, longitude: float, latitude:float, datetime:int):
     auth_key = request.headers.get("apikey")
     valid = authenticate_key(auth_key)
     if not valid:
@@ -125,6 +125,8 @@ def get_psm(longitude: float, latitude:float, datetime:int):
     long_offset = ((BOUNDING_WIDTH/2.0) / (40075.0*math.cos(math.radians(latitude)/360.0)))
     east_bound = longitude + long_offset
     west_bound = longitude - long_offset
+
+    #{'_id': ObjectId('6071f813cf575f480ecbc485'), 'basicType': 'aPEDESTRIAN', 'timestamp': 1618081809268, 'msgCnt': 1, 'id': '795c1fec-6ad7-4ce8-8506-490b29e8e5f8', 'position': {'lat': 40.4737417, 'lon': -104.9694426, 'elevation': 1493.5211130532612}, 'accuracy': 5.914999961853027, 'speed': 0.00041544949635863304, 'heading': 177.62246704101562}
 
     query = {"$and":[
         {"timestamp": {"$gte": start_millis}},
