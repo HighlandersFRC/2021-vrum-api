@@ -15,10 +15,14 @@ uri = "mongodb://4499-innovation-project:5DlQKCwxEYQvdtBAITOC7w0YPfgtvFbRP96sT6T
 client = pymongo.MongoClient(uri)
 app = FastAPI()
 
-BOUNDING_HEIGHT = 1.0 #km
-BOUNDING_WIDTH = 1.0 #km
+BOUNDING_HEIGHT = 1000 #km
+BOUNDING_WIDTH = 1000 #km
+BOUNDING_TIME_MILLIS = 30*1000
 
-BOUNDING_LAT_OFFSET = (BOUNDING_HEIGHT/2.0)/111.132954 
+
+M_PER_DEG = 111132.954 
+
+BOUNDING_LAT_OFFSET = (BOUNDING_HEIGHT/2.0)/M_PER_DEG
 
 class Position(BaseModel):
     lat: float
@@ -116,17 +120,19 @@ def get_psm(request:Request, longitude: float, latitude:float, datetime:int):
     mydb = client['test-database']
     mycol = mydb['Container1']
 
-    start_millis = datetime - 30000
-    end_millis = datetime + 30000
 
+    #Compute minimum and maximum time ranges
+    start_millis = datetime - BOUNDING_TIME_MILLIS
+    end_millis = datetime + BOUNDING_TIME_MILLIS
+
+    #compute bounding latitudes
     north_bound = latitude + BOUNDING_LAT_OFFSET
     south_bound = latitude - BOUNDING_LAT_OFFSET
 
-    long_offset = ((BOUNDING_WIDTH/2.0) / (40075.0*math.cos(math.radians(latitude)/360.0)))
+    #compute bounding longitudes based on center latitude
+    long_offset = ((BOUNDING_WIDTH/2.0) / (M_PER_DEG*math.cos(math.radians(latitude))))
     east_bound = longitude + long_offset
     west_bound = longitude - long_offset
-
-    #{'_id': ObjectId('6071f813cf575f480ecbc485'), 'basicType': 'aPEDESTRIAN', 'timestamp': 1618081809268, 'msgCnt': 1, 'id': '795c1fec-6ad7-4ce8-8506-490b29e8e5f8', 'position': {'lat': 40.4737417, 'lon': -104.9694426, 'elevation': 1493.5211130532612}, 'accuracy': 5.914999961853027, 'speed': 0.00041544949635863304, 'heading': 177.62246704101562}
 
     query = {"$and":[
         {"timestamp": {"$gte": start_millis}},
@@ -137,6 +143,7 @@ def get_psm(request:Request, longitude: float, latitude:float, datetime:int):
         {"position.lon": {"$lte": east_bound}}
     ]}
 
+    #restructures mongo result into psm pagination
     psms = mycol.find(query)
     psm_list = []
     for x in psms:
