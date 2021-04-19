@@ -27,3 +27,12 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     token_expires: int
+
+class Notification(BaseModel):
+    basicType: str
+    timestamp: int
+    id: str
+    position: Position
+    accuracy: float
+    speed: float
+    heading: float

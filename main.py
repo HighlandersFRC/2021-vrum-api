@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm 
-from schemas import Position, PSM, PSM_Pagination, Token
+from schemas import Position, PSM, PSM_Pagination, Token, Notification
 from datetime import datetime, timedelta
 import pymongo
 import uuid
@@ -160,23 +160,14 @@ async def write_psm(request: Request, psm: PSM):
         get_correct_response(auth_key)
 
     mydb = client['test-database']
-    mycol = mydb['psm']
+    mycol = mydb['vru']
     mycol.insert_one(psm.dict())
     return 200
-
-
-@app.post("/test/")
-async def write_psm(request: Request, psm: PSM):
-    mydb = client['test-database']
-    mycol = mydb['psm']
-    mycol.insert_one(psm.dict())
-    return 200
-
 
 @app.get("/secure/psm/")
 async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = Depends(get_active_token)):
     mydb = client['test-database']
-    mycol = mydb['psm']
+    mycol = mydb['vru']
 
 
     #Compute minimum and maximum time ranges
@@ -213,10 +204,16 @@ async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = 
 @app.post("/secure/psm/")
 async def write_psm(psm: PSM,token:Token = Depends(get_active_token)):
     mydb = client['test-database']
-    mycol = mydb['psm']
+    mycol = mydb['vru']
     mycol.insert_one(psm.dict())
     return 200
 
+@app.post("/secure/notifications/")
+async def write_notification(notification: Notification, token:Token = Depends(get_active_token)):
+    mydb = client['test-database']
+    mycol = mydb['notifications']
+    mycol.insert_one(notification.dict())
+    return 200
 
 @app.get("/count/psm")
 async def get_count(token:Token = Depends(get_active_token)):
