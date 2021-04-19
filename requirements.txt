@@ -8,4 +8,4 @@ uvicorn
 gunicorn
 uvloop
 httptools
-multipart
+python-multipart
