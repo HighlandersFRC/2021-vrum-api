@@ -160,7 +160,15 @@ async def write_psm(request: Request, psm: PSM):
         get_correct_response(auth_key)
 
     mydb = client['test-database']
-    mycol = mydb['Container1']
+    mycol = mydb['psm']
+    mycol.insert_one(psm.dict())
+    return 200
+
+
+@app.post("/test/")
+async def write_psm(request: Request, psm: PSM):
+    mydb = client['test-database']
+    mycol = mydb['psm']
     mycol.insert_one(psm.dict())
     return 200
 
@@ -168,7 +176,7 @@ async def write_psm(request: Request, psm: PSM):
 @app.get("/secure/psm/")
 async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = Depends(get_active_token)):
     mydb = client['test-database']
-    mycol = mydb['Container1']
+    mycol = mydb['psm']
 
 
     #Compute minimum and maximum time ranges
@@ -205,6 +213,15 @@ async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = 
 @app.post("/secure/psm/")
 async def write_psm(psm: PSM,token:Token = Depends(get_active_token)):
     mydb = client['test-database']
-    mycol = mydb['Container1']
+    mycol = mydb['psm']
     mycol.insert_one(psm.dict())
     return 200
+
+
+@app.get("/count/psm")
+async def get_count(token:Token = Depends(get_active_token)):
+    mydb = client['test-database']
+    mycol = mydb['psm']
+    f = {"timestamp":{"$gte":0}}
+    
+    return mycol.count_documents(f)
