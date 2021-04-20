@@ -62,7 +62,7 @@ def get_correct_response(auth_key):
 def read_root():
     return {"Hello": "World"}
 
-@app.post("/auth/token")
+@app.post("/auth/token/")
 async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):
     valid = authenticate_key(form_data.password)
     if not valid:
@@ -117,7 +117,7 @@ async def get_psm(request:Request, longitude: float, latitude:float, datetime:in
         get_correct_response(auth_key)
 
     mydb = client['test-database']
-    mycol = mydb['Container1']
+    mycol = mydb['vru']
 
 
     #Compute minimum and maximum time ranges
@@ -225,7 +225,7 @@ async def write_notification(notification: Vru_Notification, token:Token = Depen
 @app.get("/count/psm")
 async def get_count(token:Token = Depends(get_active_token)):
     mydb = client['test-database']
-    mycol = mydb['psm']
+    mycol = mydb['vru']
     f = {"timestamp":{"$gte":0}}
     
     return mycol.count_documents(f)
