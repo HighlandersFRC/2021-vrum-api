@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import FastAPI, Request, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm 
-from schemas import Position, PSM, PSM_Pagination, Token, Notification
+from schemas import Position, PSM, PSM_Pagination, Token, Vru_Notification
 from datetime import datetime, timedelta
 import pymongo
 import uuid
@@ -164,6 +164,13 @@ async def write_psm(request: Request, psm: PSM):
     mycol.insert_one(psm.dict())
     return 200
 
+@app.post("/notifications/")
+async def write_notification(notification: Vru_Notification):
+    mydb = client['test-database']
+    mycol = mydb['notifications']
+    mycol.insert_one(notification.dict())
+    return 200
+
 @app.get("/secure/psm/")
 async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = Depends(get_active_token)):
     mydb = client['test-database']
@@ -209,7 +216,7 @@ async def write_psm(psm: PSM,token:Token = Depends(get_active_token)):
     return 200
 
 @app.post("/secure/notifications/")
-async def write_notification(notification: Notification, token:Token = Depends(get_active_token)):
+async def write_notification(notification: Vru_Notification, token:Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['notifications']
     mycol.insert_one(notification.dict())

@@ -13,14 +13,21 @@ class PSM(BaseModel):
     timestamp: int
     msgCnt: int
     id: str
+    deviceId: str
     position: Position
     accuracy: float
     speed: float
     heading: float
 
-
 class PSM_Pagination(BaseModel):
     psms: List[PSM]
+
+
+class Path_History_Point(BaseModel):
+    position: Position
+    timestamp: int
+    speed: float
+    heading: float
 
 
 class Token(BaseModel):
@@ -28,11 +35,19 @@ class Token(BaseModel):
     token_type: str
     token_expires: int
 
-class Notification(BaseModel):
-    basicType: str
-    timestamp: int
+
+class Vru_Notification(BaseModel):
     id: str
-    position: Position
-    accuracy: float
-    speed: float
-    heading: float
+    timestamp: int
+    vehiclePsmId: str
+    vruPsmId: str
+    vruDeviceId: str
+    vehicleDeviceId: str
+    timeToCollision: float
+    distance: float
+    reason: str
+    pathHistory: List[Path_History_Point]
+
+class PSM_Pagination(BaseModel):
+    Vru_Notification: List[Vru_Notification]
+
