@@ -1,6 +1,6 @@
 from typing import Optional
 from fastapi import FastAPI, Request, HTTPException, status, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm 
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from schemas import Position, PSM, PSM_Pagination, Token, Vru_Notification
 from datetime import datetime, timedelta
 import pymongo
@@ -11,10 +11,10 @@ import math
 
 
 # Geometry Constants for Geospatial Query
-BOUNDING_WIDTH = 1000 # width of bounding rectangle in meters
-BOUNDING_HEIGHT = 1000 # height of bounding rectangle in meters
+BOUNDING_WIDTH = 1000  # width of bounding rectangle in meters
+BOUNDING_HEIGHT = 1000  # height of bounding rectangle in meters
 BOUNDING_TIME_MILLIS = 30*1000
-M_PER_DEG = 111132.954 #meters per degree latitude
+M_PER_DEG = 111132.954  # meters per degree latitude
 BOUNDING_LAT_OFFSET = (BOUNDING_HEIGHT/2.0)/M_PER_DEG
 
 
@@ -30,11 +30,13 @@ app = FastAPI()
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ACCESS_TOKEN_EXPIRE_MILLIS = ACCESS_TOKEN_EXPIRE_MINUTES * 60 * 1000
 
-#Unix Time 0
+# Unix Time 0
 epoch = datetime.utcfromtimestamp(0)
+
 
 def unix_time_millis():
     return (datetime.utcnow() - epoch).total_seconds() * 1000.0
+
 
 def authenticate_key(key):
     try:
@@ -44,6 +46,8 @@ def authenticate_key(key):
         return False
 
 # Deprecated - used only to support /psm routes
+
+
 def get_correct_response(auth_key):
     if not auth_key:
         raise HTTPException(
@@ -62,6 +66,7 @@ def get_correct_response(auth_key):
 def read_root():
     return {"Hello": "World"}
 
+
 @app.post("/auth/token/")
 async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):
     valid = authenticate_key(form_data.password)
@@ -73,9 +78,9 @@ async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):
         )
 
     token = Token(
-        access_token = str(uuid.uuid4()),
-        token_type = "Bearer",
-        token_expires = unix_time_millis() + ACCESS_TOKEN_EXPIRE_MILLIS
+        access_token=str(uuid.uuid4()),
+        token_type="Bearer",
+        token_expires=unix_time_millis() + ACCESS_TOKEN_EXPIRE_MILLIS
     )
 
     mydb = client['test-database']
@@ -84,11 +89,12 @@ async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):
 
     return token
 
+
 async def get_active_token(token: Token = Depends(oauth2_scheme)):
     # Search the database for the supplied Token
     mydb = client['test-database']
     mycol = mydb['tokens']
-    query = {"access_token":{"$eq":token}}
+    query = {"access_token": token}
     db_token = mycol.find_one(query)
     if not db_token:
         raise HTTPException(
@@ -96,7 +102,7 @@ async def get_active_token(token: Token = Depends(oauth2_scheme)):
             detail="Token not found",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if unix_time_millis() > db_token['token_expires']:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -109,7 +115,7 @@ async def get_active_token(token: Token = Depends(oauth2_scheme)):
 
 # Deprecated - Should use new /secure/psm endpoints
 @app.get("/psm/")
-async def get_psm(request:Request, longitude: float, latitude:float, datetime:int):
+async def get_psm(request: Request, longitude: float, latitude: float, datetime: int):
     auth_key = request.headers.get("apikey")
     valid = authenticate_key(auth_key)
     if not valid:
@@ -118,21 +124,21 @@ async def get_psm(request:Request, longitude: float, latitude:float, datetime:in
     mydb = client['test-database']
     mycol = mydb['vru']
 
-
-    #Compute minimum and maximum time ranges
+    # Compute minimum and maximum time ranges
     start_millis = datetime - BOUNDING_TIME_MILLIS
     end_millis = datetime + BOUNDING_TIME_MILLIS
 
-    #compute bounding latitudes
+    # compute bounding latitudes
     north_bound = latitude + BOUNDING_LAT_OFFSET
     south_bound = latitude - BOUNDING_LAT_OFFSET
 
-    #compute bounding longitudes based on center latitude
-    long_offset = ((BOUNDING_WIDTH/2.0) / (M_PER_DEG*math.cos(math.radians(latitude))))
+    # compute bounding longitudes based on center latitude
+    long_offset = ((BOUNDING_WIDTH/2.0) /
+                   (M_PER_DEG*math.cos(math.radians(latitude))))
     east_bound = longitude + long_offset
     west_bound = longitude - long_offset
 
-    query = {"$and":[
+    query = {"$and": [
         {"timestamp": {"$gte": start_millis}},
         {"timestamp": {"$lte": end_millis}},
         {"position.lat": {"$gte": south_bound}},
@@ -141,18 +147,20 @@ async def get_psm(request:Request, longitude: float, latitude:float, datetime:in
         {"position.lon": {"$lte": east_bound}}
     ]}
 
-    #restructures mongo result into psm pagination
+    # restructures mongo result into psm pagination
     psms = mycol.find(query)
-    
+
     psm_list = []
     for x in psms:
         psm_list.append(x)
-    psm_response = PSM_Pagination(psms = psm_list)
-    
+    psm_response = PSM_Pagination(psms=psm_list)
+
     return psm_response
 
 
 # Deprecated - Should use new /secure/psm endpoints
+
+
 @app.post("/psm/")
 async def write_psm(request: Request, psm: PSM):
     auth_key = request.headers.get("apikey")
@@ -165,6 +173,7 @@ async def write_psm(request: Request, psm: PSM):
     mycol.insert_one(psm.dict())
     return 200
 
+
 @app.post("/notifications/")
 async def write_notification(notification: Vru_Notification):
     mydb = client['test-database']
@@ -172,26 +181,27 @@ async def write_notification(notification: Vru_Notification):
     mycol.insert_one(notification.dict())
     return 200
 
+
 @app.get("/secure/psm/")
-async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = Depends(get_active_token)):
+async def get_psm(longitude: float, latitude: float, datetime: int, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['vru']
 
-
-    #Compute minimum and maximum time ranges
+    # Compute minimum and maximum time ranges
     start_millis = datetime - BOUNDING_TIME_MILLIS
     end_millis = datetime + BOUNDING_TIME_MILLIS
 
-    #compute bounding latitudes
+    # compute bounding latitudes
     north_bound = latitude + BOUNDING_LAT_OFFSET
     south_bound = latitude - BOUNDING_LAT_OFFSET
 
-    #compute bounding longitudes based on center latitude
-    long_offset = ((BOUNDING_WIDTH/2.0) / (M_PER_DEG*math.cos(math.radians(latitude))))
+    # compute bounding longitudes based on center latitude
+    long_offset = ((BOUNDING_WIDTH/2.0) /
+                   (M_PER_DEG*math.cos(math.radians(latitude))))
     east_bound = longitude + long_offset
     west_bound = longitude - long_offset
 
-    query = {"$and":[
+    query = {"$and": [
         {"timestamp": {"$gte": start_millis}},
         {"timestamp": {"$lte": end_millis}},
         {"position.lat": {"$gte": south_bound}},
@@ -200,33 +210,36 @@ async def get_psm(longitude: float, latitude:float, datetime:int, token:Token = 
         {"position.lon": {"$lte": east_bound}}
     ]}
 
-    #restructures mongo result into psm pagination
+    # restructures mongo result into psm pagination
     psms = mycol.find(query)
     psm_list = []
     for x in psms:
         psm_list.append(x)
 
-    psm_response = PSM_Pagination(psms = psm_list)
+    psm_response = PSM_Pagination(psms=psm_list)
     return psm_response
 
+
 @app.post("/secure/psm/")
-async def write_psm(psm: PSM,token:Token = Depends(get_active_token)):
+async def write_psm(psm: PSM, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['vru']
     mycol.insert_one(psm.dict())
     return 200
 
+
 @app.post("/secure/notifications/")
-async def write_notification(notification: Vru_Notification, token:Token = Depends(get_active_token)):
+async def write_notification(notification: Vru_Notification, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['notifications']
     mycol.insert_one(notification.dict())
     return 200
 
+
 @app.get("/count/psm")
-async def get_count(token:Token = Depends(get_active_token)):
+async def get_count(token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['vru']
-    f = {"timestamp":{"$gte":0}}
-    
+    f = {"timestamp": {"$gte": 0}}
+
     return mycol.count_documents(f)
