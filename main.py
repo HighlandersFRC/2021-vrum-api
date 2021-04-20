@@ -183,7 +183,7 @@ async def write_notification(notification: Vru_Notification):
 
 
 @app.get("/secure/psm/")
-async def get_psm(longitude: float, latitude: float, datetime: int, token: Token = Depends(get_active_token)):
+async def get_secure_psm(longitude: float, latitude: float, datetime: int, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['vru']
 
@@ -221,15 +221,23 @@ async def get_psm(longitude: float, latitude: float, datetime: int, token: Token
 
 
 @app.post("/secure/psm/")
-async def write_psm(psm: PSM, token: Token = Depends(get_active_token)):
+async def write_secure_psm(psm: PSM, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['vru']
     mycol.insert_one(psm.dict())
     return 200
 
 
+@app.post("/secure/vehicle-psm/")
+async def write_secure_vehicle_psm(psm: PSM, token: Token = Depends(get_active_token)):
+    mydb = client['test-database']
+    mycol = mydb['vehicle']
+    mycol.insert_one(psm.dict())
+    return 200
+
+
 @app.post("/secure/notifications/")
-async def write_notification(notification: Vru_Notification, token: Token = Depends(get_active_token)):
+async def write_secure_notification(notification: Vru_Notification, token: Token = Depends(get_active_token)):
     mydb = client['test-database']
     mycol = mydb['notifications']
     mycol.insert_one(notification.dict())
