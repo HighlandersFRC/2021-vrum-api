@@ -26,7 +26,7 @@ class PSM(BaseModel):
     accuracy: float
     speed: float
     heading: float
-    pathhistory: List[Path_History_Point]
+    pathHistory: List[Path_History_Point]
 
 
 class PSM_Pagination(BaseModel):
