@@ -48,6 +48,6 @@ class Vru_Notification(BaseModel):
     reason: str
     pathHistory: List[Path_History_Point]
 
-class PSM_Pagination(BaseModel):
+class Vru_Notification_Pagination(BaseModel):
     Vru_Notification: List[Vru_Notification]
 

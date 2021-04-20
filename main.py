@@ -25,7 +25,7 @@ client = pymongo.MongoClient(uri)
 
 
 # Initialize FastAPI
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token/")
 app = FastAPI()
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 ACCESS_TOKEN_EXPIRE_MILLIS = ACCESS_TOKEN_EXPIRE_MINUTES * 60 * 1000
@@ -90,7 +90,6 @@ async def get_active_token(token: Token = Depends(oauth2_scheme)):
     mycol = mydb['tokens']
     query = {"access_token":{"$eq":token}}
     db_token = mycol.find_one(query)
-    
     if not db_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -144,12 +143,14 @@ async def get_psm(request:Request, longitude: float, latitude:float, datetime:in
 
     #restructures mongo result into psm pagination
     psms = mycol.find(query)
+    
     psm_list = []
     for x in psms:
         psm_list.append(x)
-
     psm_response = PSM_Pagination(psms = psm_list)
+    
     return psm_response
+
 
 # Deprecated - Should use new /secure/psm endpoints
 @app.post("/psm/")
